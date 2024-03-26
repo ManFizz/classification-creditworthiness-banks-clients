@@ -5,44 +5,32 @@ class AttributesList extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			attributes: [],
 			editingId: null,
 			newName: "",
 			newAttributeName: "",
 		};
 	}
 
-	componentDidMount() {
-		this.fetchAttributes();
-	}
-
-	fetchAttributes = async () => {
-		try {
-			const response = await axios.get('/api/attributes');
-			this.setState({ attributes: response.data });
-		} catch (error) {
-			console.error('Error fetching attributes:', error);
-		}
-	};
-
 	handleNewAttributeNameChange = (event) => {
-		this.setState({ newAttributeName: event.target.value });
+		this.setState({
+			newAttributeName: event.target.value,
+		});
 	};
 
 	handleAdd = async () => {
 		const { newAttributeName } = this.state;
-
 		try {
 			const response = await axios.post('/api/attributes', {
 				name: newAttributeName
 			});
 
 			const newAttribute = response.data;
-
-			this.setState(prevState => ({
-				attributes: [...prevState.attributes, newAttribute],
-				newAttributeName: "",
+			this.props.setProps(prevProps => ({
+				attributes: [...prevProps.attributes, newAttribute],
 			}));
+			this.setState({
+				newAttributeName: "",
+			});
 		} catch (error) {
 			console.error('Error adding attribute:', error);
 		}
@@ -51,8 +39,8 @@ class AttributesList extends Component {
 	handleDelete = async (id) => {
 		try {
 			await axios.delete(`/api/attributes/${id}`);
-			this.setState(prevState => ({
-				attributes: prevState.attributes.filter(c => c.id !== id)
+			this.props.setProps(prevProps => ({
+				attributes: prevProps.attributes.filter(c => c.id !== id)
 			}));
 		} catch (error) {
 			console.error('Error deleting attribute:', error);
@@ -60,7 +48,7 @@ class AttributesList extends Component {
 	};
 
 	handleEdit = (id) => {
-		const { attributes } = this.state;
+		const { attributes } = this.props;
 		this.setState({
 			editingId: id,
 			newName: attributes.find(c => c.id === id).name
@@ -75,22 +63,29 @@ class AttributesList extends Component {
 		try {
 			const { editingId, newName } = this.state;
 			await axios.put(`/api/attributes/${editingId}`, { name: newName });
-			this.setState(prevState => ({
-				attributes: prevState.attributes.map(c => c.id === editingId ? { ...c, name: newName } : c),
-				editingId: null,
-				newName: ""
+
+			this.props.setProps(prevProps => ({
+				attributes: prevProps.attributes.map(c => c.id === editingId ? { ...c, name: newName } : c),
 			}));
+			this.setState({
+				editingId: null,
+				newName: "",
+			});
 		} catch (error) {
 			console.error('Error saving attribute:', error);
 		}
 	};
 
 	handleCancel = () => {
-		this.setState({ editingId: null, newName: "" });
+		this.setState({
+			editingId: null,
+			newName: "",
+		});
 	};
 
 	render() {
-		const { attributes, newName, editingId, newAttributeName } = this.state;
+		const { newName, editingId, newAttributeName } = this.state;
+		const { attributes } = this.props;
 		return (
 			<>
 				<header className="col-12">Список признаков</header>
@@ -135,7 +130,7 @@ class AttributesList extends Component {
 						<th scope="row">.</th>
 						<td>
 							<input type="text" value={newAttributeName} onChange={this.handleNewAttributeNameChange}
-										 placeholder="New class name"/>
+										 placeholder="Название"/>
 						</td>
 						<td className="text-center">
 							<button className="btn btn-success btn-sm" onClick={this.handleAdd}>

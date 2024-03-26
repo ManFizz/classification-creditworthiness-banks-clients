@@ -10,43 +10,99 @@ import NavBar from "./js/Components/NavBar";
 import AttributesList from "./js/Components/AttributesList";
 import AttributesValues from "./js/Components/AttributesValues";
 import ClassesDescription from "./js/Components/ClassesDecription";
-import ClassesValues from "./js/Components/ClassesValues";
 import CheckCompleteness from "./js/Components/CheckCompleteness";
 import DeterminingClass from "./js/Components/DeterminigClass";
+import axios from "axios";
 
 class Main extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      section: SECTION.CLASSES_LIST,
+      section: SECTION.DETERMINING_THE_CREDITWORTHINESS_CLASS,
+      classes: [],
+      attributes: [],
     };
 
     this.renderCurrentNav = this.renderCurrentNav.bind(this);
   }
+  componentDidMount() {
+    this.fetchClasses().then();
+    this.fetchAttributes().then();
+  }
+
+  fetchClasses = async () => {
+    try {
+      const response = await axios.get('/api/classes');
+      await this.setState({ classes: response.data }, this.OnSuccess);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
+  fetchAttributes = async () => {
+    try {
+      const response = await axios.get('/api/attributes');
+      this.setState({ attributes: response.data }, this.OnSuccess);
+    } catch (error) {
+      console.error('Error fetching attributes:', error);
+    }
+  };
+
+  OnSuccess = () => {
+    const { attributes, classes } = this.state;
+    if(classes.length > 0 && attributes.length > 0) {
+      classes.forEach(c => {
+        if(c.attributes === undefined)
+          c.attributes = [];
+        else {
+          c.attributes.forEach(a => {
+            a.attr = attributes.find(attr => attr.id === a.id);
+          });
+        }
+      });
+    }
+  };
 
   renderCurrentNav() {
-    const { section } = this.state;
+    const { section, classes, attributes } = this.state;
     switch(section) {
       case SECTION.CLASSES_LIST: {
-        return <ClassesList />;
+        return <ClassesList
+          classes={classes}
+          setProps={(arg) => this.setState(arg)}
+        />;
       }
       case SECTION.ATTRIBUTES: {
-        return <AttributesList />;
+        return <AttributesList
+          attributes={attributes}
+          setProps={(arg) => this.setState(arg)}
+        />;
       }
       case SECTION.ATTRIBUTES_VALUES: {
-        return <AttributesValues />;
+        return <AttributesValues
+          attributes={attributes}
+          setProps={(arg) => this.setState(arg)}
+        />;
       }
       case SECTION.CLASSES_DESCRIPTION: {
-        return <ClassesDescription />;
-      }
-      case SECTION.CLASSES_VALUES: {
-        return <ClassesValues />;
+        return <ClassesDescription
+          classes={classes}
+          attributes={attributes}
+          setProps={(arg) => this.setState(arg)}
+        />;
       }
       case SECTION.CHECK_COMPLETENESS_KNOWLEDGE: {
-        return <CheckCompleteness />;
+        return <CheckCompleteness
+          classes={classes}
+          attributes={attributes}
+          setProps={(arg) => this.setState(arg)}
+        />;
       }
       case SECTION.DETERMINING_THE_CREDITWORTHINESS_CLASS: {
-        return <DeterminingClass />;
+        return <DeterminingClass
+          classes={classes}
+          attributes={attributes}
+        />;
       }
       default: {
         return <span>Invalid section</span>;

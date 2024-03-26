@@ -43,8 +43,8 @@ router.put('/:id', async (req, res) => {
 		}
 
 		const { name, type, minValue, maxValue, value } = req.body;
-		if (name) attributeToUpdate.name = name;
-		if (type) attributeToUpdate.type = type;
+		if (name !== undefined) attributeToUpdate.name = name;
+		if (type !== undefined) attributeToUpdate.type = type;
 		if (minValue !== undefined) attributeToUpdate.minValue = minValue;
 		if (maxValue !== undefined) attributeToUpdate.maxValue = maxValue;
 		if (value !== undefined) attributeToUpdate.value = value;

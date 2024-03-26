@@ -5,28 +5,16 @@ class ClassesList extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			classes: [],
 			editingId: null,
 			newName: "",
 			newClassName: "",
 		};
 	}
 
-	componentDidMount() {
-		this.fetchClasses();
-	}
-
-	fetchClasses = async () => {
-		try {
-			const response = await axios.get('/api/classes');
-			this.setState({ classes: response.data });
-		} catch (error) {
-			console.error('Error fetching classes:', error);
-		}
-	};
-
 	handleNewClassNameChange = (event) => {
-		this.setState({ newClassName: event.target.value });
+		this.setState({
+			newClassName: event.target.value,
+		});
 	};
 
 	handleAdd = async () => {
@@ -34,15 +22,18 @@ class ClassesList extends Component {
 
 		try {
 			const response = await axios.post('/api/classes', {
-				name: newClassName
+				name: newClassName,
+				attributes: [],
 			});
 
 			const newClass = response.data;
 
-			this.setState(prevState => ({
-				classes: [...prevState.classes, newClass],
-				newClassName: "",
+			this.props.setProps(prevProps => ({
+				classes: [...prevProps.classes, newClass],
 			}));
+			this.setState({
+				newClassName: "",
+			});
 		} catch (error) {
 			console.error('Error adding class:', error);
 		}
@@ -51,8 +42,8 @@ class ClassesList extends Component {
 	handleDelete = async (id) => {
 		try {
 			await axios.delete(`/api/classes/${id}`);
-			this.setState(prevState => ({
-				classes: prevState.classes.filter(c => c.id !== id)
+			this.props.setProps(prevProps => ({
+				classes: prevProps.classes.filter(c => c.id !== id)
 			}));
 		} catch (error) {
 			console.error('Error deleting class:', error);
@@ -60,10 +51,9 @@ class ClassesList extends Component {
 	};
 
 	handleEdit = (id) => {
-		const { classes } = this.state;
 		this.setState({
 			editingId: id,
-			newName: classes.find(c => c.id === id).name
+			newName: this.props.classes.find(c => c.id === id).name
 		});
 	};
 
@@ -72,13 +62,15 @@ class ClassesList extends Component {
 	};
 
 	handleSave = async () => {
+		const { editingId, newName } = this.state;
 		try {
-			const { editingId, newName } = this.state;
 			await axios.put(`/api/classes/${editingId}`, { name: newName });
-			this.setState(prevState => ({
-				classes: prevState.classes.map(c => c.id === editingId ? { ...c, name: newName } : c),
+			this.setState({
 				editingId: null,
 				newName: ""
+			});
+			this.props.setProps(prevProps => ({
+				classes: prevProps.classes.map(c => c.id === editingId ? { ...c, name: newName } : c),
 			}));
 		} catch (error) {
 			console.error('Error saving class:', error);
@@ -90,21 +82,21 @@ class ClassesList extends Component {
 	};
 
 	render() {
-		const { classes, newName, editingId, newClassName } = this.state;
+		const { newName, editingId, newClassName } = this.state;
 		return (
 			<>
 				<header className="col-12">Список классов кредитоспособности</header>
 				<div className="col-12">
 				<table className="table table-hover">
 					<thead className="table-light">
-					<tr>
+					<tr key="index">
 						<th scope="col">#</th>
 						<th scope="col">Название</th>
 						<th scope="col"></th>
 					</tr>
 					</thead>
 					<tbody className="table-group-divider">
-					{classes.map( (c, index) => (
+					{this.props.classes.map( (c, index) => (
 						<tr key={c.id}>
 							<th scope="row">{index+1}</th>
 							<td>{editingId === c.id ? <input type="text" value={newName} onChange={this.handleChange}/> : c.name}</td>
@@ -131,11 +123,11 @@ class ClassesList extends Component {
 							</td>
 						</tr>
 					))}
-					<tr>
+					<tr key="add-field">
 						<th scope="row">.</th>
 						<td>
 							<input type="text" value={newClassName} onChange={this.handleNewClassNameChange}
-										 placeholder="New class name"/>
+										 placeholder="Название"/>
 						</td>
 						<td className="text-center">
 							<button className="btn btn-success btn-sm" onClick={this.handleAdd}>

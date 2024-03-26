@@ -1,13 +1,21 @@
 const mongoose = require('mongoose');
 
 const attributeSchema = new mongoose.Schema({
+	id: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'Attribute',
+	},
+	minValue: {
+		type: Number,
+		default: null,
+	},
 	maxValue: {
 		type: Number,
-		default: null
+		default: null,
 	},
 	value: {
-		type: [String, Boolean],
-		default: null
+		type: [mongoose.Schema.Types.Mixed],
+		default: null,
 	}
 });
 

@@ -20,13 +20,12 @@ class NavBar extends Component {
 				<div className="container-xxl">
 					<div className="navbar-nav flex-row flex-wrap bd-navbar-nav">
 						<div className="btn-group radio-group">
-							{renderRadioButtons( 1, [
+							{renderRadioButtons( 0, [
 								{label: 'Определение класса кредитоспособности', onClick: () => setSection(SECTION.DETERMINING_THE_CREDITWORTHINESS_CLASS)},
 								{label: 'Классы кредитоспособности', onClick: () => setSection(SECTION.CLASSES_LIST)},
 								{label: 'Признаки', onClick: () => setSection(SECTION.ATTRIBUTES)},
-								{label: 'Возможные значения', onClick: () => setSection(SECTION.ATTRIBUTES_VALUES)},
-								{label: 'Описание признаков класса', onClick: () => setSection(SECTION.CLASSES_DESCRIPTION)},
-								{label: 'Значение для класса', onClick: () => setSection(SECTION.CLASSES_VALUES)},
+								{label: 'Возможные значения признаков', onClick: () => setSection(SECTION.ATTRIBUTES_VALUES)},
+								{label: 'Значение признаков для класса', onClick: () => setSection(SECTION.CLASSES_DESCRIPTION)},
 								{label: 'Проверка полноты знаний', onClick: () => setSection(SECTION.CHECK_COMPLETENESS_KNOWLEDGE)},
 							])}
 						</div>
