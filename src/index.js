@@ -1,18 +1,19 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom/client';
-import ClassesList from "./js/Components/ClassesList";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-icons/font/bootstrap-icons.min.css"
 import "./css/main.css";
 import { SECTION } from "./js/Definitions";
-import NavBar from "./js/Components/NavBar";
-import AttributesList from "./js/Components/AttributesList";
-import AttributesValues from "./js/Components/AttributesValues";
-import ClassesDescription from "./js/Components/ClassesDecription";
-import CheckCompleteness from "./js/Components/CheckCompleteness";
-import DeterminingClass from "./js/Components/DeterminigClass";
+import NavBar from "./js/Components/Layout/NavBar";
+import ClassesList from "./js/Components/Pages/ClassesList";
+import AttributesList from "./js/Components/Pages/AttributesList";
+import AttributesValues from "./js/Components/Pages/AttributesValues";
+import ClassesValues from "./js/Components/Pages/ClassesValues";
+import CheckCompleteness from "./js/Components/Pages/CheckCompleteness";
+import DeterminingClass from "./js/Components/Pages/DeterminigClass";
 import axios from "axios";
+import isEqual from "lodash/isEqual";
 
 class Main extends Component {
   constructor(props) {
@@ -33,7 +34,7 @@ class Main extends Component {
   fetchClasses = async () => {
     try {
       const response = await axios.get('/api/classes');
-      await this.setState({ classes: response.data }, this.OnSuccess);
+      await this.setState({ classes: response.data }, this.LinkAttributes);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -42,13 +43,13 @@ class Main extends Component {
   fetchAttributes = async () => {
     try {
       const response = await axios.get('/api/attributes');
-      this.setState({ attributes: response.data }, this.OnSuccess);
+      this.setState({ attributes: response.data }, this.LinkAttributes);
     } catch (error) {
       console.error('Error fetching attributes:', error);
     }
   };
 
-  OnSuccess = () => {
+  LinkAttributes = () => {
     const { attributes, classes } = this.state;
     if(classes.length > 0 && attributes.length > 0) {
       classes.forEach(c => {
@@ -62,6 +63,12 @@ class Main extends Component {
       });
     }
   };
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if(!isEqual(prevState.attrValues, this.state.attributes)) {
+      this.LinkAttributes();
+    }
+  }
 
   renderCurrentNav() {
     const { section, classes, attributes } = this.state;
@@ -85,7 +92,7 @@ class Main extends Component {
         />;
       }
       case SECTION.CLASSES_DESCRIPTION: {
-        return <ClassesDescription
+        return <ClassesValues
           classes={classes}
           attributes={attributes}
           setProps={(arg) => this.setState(arg)}
@@ -102,6 +109,7 @@ class Main extends Component {
         return <DeterminingClass
           classes={classes}
           attributes={attributes}
+          setSection={ sect => this.setState({section: sect})}
         />;
       }
       default: {
@@ -113,7 +121,10 @@ class Main extends Component {
   render() {
     return (
       <React.StrictMode>
-        <NavBar setSection={ sect => this.setState({section: sect})}/>
+        <NavBar
+          setSection={ sect => this.setState({section: sect})}
+          display={this.state.section !== SECTION.DETERMINING_THE_CREDITWORTHINESS_CLASS}
+        />
         <div className="wrapper d-flex align-items-stretch overflow-auto container-xxl flex-wrap">
           {this.renderCurrentNav()}
         </div>

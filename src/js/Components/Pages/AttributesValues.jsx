@@ -1,31 +1,8 @@
 import React, { Component } from "react";
 import axios from "axios";
-import { ATTRIBUTE_TYPE, ATTRIBUTE_TYPE_NAME } from "../Definitions";
-import AttributeTypeDropdown from "./AttributeTypeDropdown";
-import StringArrayInput from "./StringArrayInput";
-
-function displayValue(attribute) {
-	const fixed = <span className="badge text-bg-secondary">Фиксировано</span>;
-	const warn = <span className="badge text-bg-warning">Не задано</span>;
-	switch (attribute.type) {
-		case ATTRIBUTE_TYPE.DOUBLE :
-		case ATTRIBUTE_TYPE.INT : {
-			if (attribute.minValue === undefined || attribute.maxValue === undefined)
-				return warn;
-			return <span>от {attribute.minValue} до {attribute.maxValue}</span>;
-		}
-		case ATTRIBUTE_TYPE.STRING : {
-			if (attribute.value.length === 0)
-				return warn;
-			return `${attribute.value.join(", ")}`;
-		}
-		case ATTRIBUTE_TYPE.BOOLEAN: {
-			return fixed;
-		}
-		default:
-			return null;
-	}
-}
+import { ATTRIBUTE_TYPE_NAME } from "../../Definitions";
+import AttributeTypeDropdown from "./AttributeValues/AttributeTypeDropdown";
+import ValueFieldElastic from "./AttributeValues/ValueFieldElastic";
 
 class AttributesValues extends Component {
 	constructor(props) {
@@ -34,8 +11,6 @@ class AttributesValues extends Component {
 			editingId: null,
 			newName: "",
 			newType: undefined,
-			minValue: undefined,
-			maxValue: undefined,
 			value: undefined,
 		};
 	}
@@ -57,9 +32,7 @@ class AttributesValues extends Component {
 			editingId: id,
 			newName: attribute.name,
 			newType: attribute.type,
-			minValue: attribute.minValue,
-			maxValue: attribute.maxValue,
-			value: attribute.value,
+			value: attribute.value || [],
 		});
 	};
 
@@ -71,72 +44,12 @@ class AttributesValues extends Component {
 		this.setState({ newType: event.target.selectedIndex-1 });
 	};
 
-	handleMinChangeInteger = (event) => {
-		const value = parseInt(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ minValue: value });
-		}
-	};
-
-	handleMaxChangeInteger = (event) => {
-		const value = parseInt(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ maxValue: value });
-		}
-	};
-
-	handleMinChangeDouble = (event) => {
-		const value = parseFloat(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ minValue: value });
-		}
-	};
-
-	handleMaxChangeDouble = (event) => {
-		const value = parseFloat(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ maxValue: value });
-		}
-	};
-
-	displayInput = (type) => {
-		const { minValue, maxValue, value} = this.state;
-		switch (type) {
-			case ATTRIBUTE_TYPE.INT: {
-				return <>
-					<label>от</label>
-					<input type="number" value={minValue} onChange={this.handleMinChangeInteger}/>
-					<label>до</label>
-					<input type="number" value={maxValue} onChange={this.handleMaxChangeInteger}/>
-				</>;
-			}
-			case ATTRIBUTE_TYPE.DOUBLE: {
-				return <>
-					<label>от</label>
-					<input type="number" step="any" value={minValue} onChange={this.handleMinChangeDouble}/>
-					<label>до</label>
-					<input type="number" step="any" value={maxValue} onChange={this.handleMaxChangeDouble}/>
-				</>;
-			}
-			case ATTRIBUTE_TYPE.STRING: {
-				return <StringArrayInput value={value} onChange={(v) => {
-					this.setState({value: v});
-				}} />;
-			}
-			default : {
-				return null;
-			}
-		}
-	}
-
 	handleSave = async () => {
 		try {
-			const { editingId, newName, newType, minValue, maxValue, value } = this.state;
+			const { editingId, newName, newType, value } = this.state;
 			await axios.put(`/api/attributes/${editingId}`, {
 				name: newName,
 				type: newType,
-				minValue: minValue,
-				maxValue: maxValue,
 				value: value
 			});
 
@@ -145,19 +58,15 @@ class AttributesValues extends Component {
 					...c,
 					name: newName,
 					type: newType,
-					minValue: minValue,
-					maxValue: maxValue,
 					value: value,
 				} : c),
 			}));
-			this.setState(prevState => ({
+			this.setState({
 				editingId: null,
 				newName: "",
 				newType: undefined,
-				minValue: undefined,
-				maxValue: undefined,
 				value: undefined,
-			}));
+			});
 
 		} catch (error) {
 			console.error('Error saving attribute:', error);
@@ -169,12 +78,12 @@ class AttributesValues extends Component {
 	};
 
 	render() {
-		const { newName, editingId, newType } = this.state;
+		const { newName, editingId, newType, value } = this.state;
 		return (
 			<>
 				<header className="col-12">Список возможных значений для признаков</header>
 				<div className="col-12">
-					<table className="table table-hover">
+					<table className="table">
 						<thead className="table-light">
 						<tr>
 							<th scope="col">#</th>
@@ -186,11 +95,11 @@ class AttributesValues extends Component {
 						</thead>
 						<tbody className="table-group-divider">
 						{this.props.attributes.map((c,index) => (
-							<tr key={c.id}>
+							<tr key={c.id} className={c.id === editingId ? "table-light": ""}>
 								<th scope="row">{index+1}</th>
 								<td>
 									{ editingId === c.id ?
-									<input type="text" value={newName} onChange={this.handleNameChange}/>
+									<input type="text" value={newName} onChange={this.handleNameChange} className="form-control"/>
 										: c.name
 									}
 								</td>
@@ -199,9 +108,9 @@ class AttributesValues extends Component {
 									: ATTRIBUTE_TYPE_NAME[c.type]}
 								</td>
 								<td style={{maxWidth: '500px'}}>
-									{editingId === c.id ? this.displayInput(newType) : displayValue(c)}
+									<ValueFieldElastic isEdit={editingId === c.id} newType={newType} value={value} attribute={c}
+																		 setProps={(data) => this.setState(data)}/>
 								</td>
-
 								<td className="text-center">
 									{editingId === c.id ? (
 										<>

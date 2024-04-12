@@ -4,9 +4,10 @@ const Schema = mongoose.Schema;
 const AttributeSchema = new Schema({
 	name: String,
 	type: Number,
-	minValue: { type: Number, required: false },
-	maxValue: { type: Number, required: false },
-	value: { type: [String], required: false }
+	value: {
+		type: [mongoose.Schema.Types.Mixed],
+		default: null,
+	}
 });
 
 const Attribute = mongoose.model('Attribute', AttributeSchema);

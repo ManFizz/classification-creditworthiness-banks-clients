@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { ATTRIBUTE_TYPE } from "../Definitions";
+import { ATTRIBUTE_TYPE } from "../../Definitions";
 
 function isBad(obj) {
 	return obj === null || obj === undefined || obj.length === 0;
@@ -20,7 +20,7 @@ class CheckCompleteness extends Component {
 					return;
 				}
 				if (attr.type === ATTRIBUTE_TYPE.INT || attr.type === ATTRIBUTE_TYPE.DOUBLE) {
-					if (isBad(found.minValue) || isBad(found.maxValue)) {
+					if (found.value[0] === undefined || isBad(found.value[0].minValue) || isBad(found.value[0].maxValue)) {
 						arr.push({
 							className: cls.name,
 							attributeName: attr.name,

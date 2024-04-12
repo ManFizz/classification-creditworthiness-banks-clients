@@ -5,14 +5,6 @@ const attributeSchema = new mongoose.Schema({
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Attribute',
 	},
-	minValue: {
-		type: Number,
-		default: null,
-	},
-	maxValue: {
-		type: Number,
-		default: null,
-	},
 	value: {
 		type: [mongoose.Schema.Types.Mixed],
 		default: null,

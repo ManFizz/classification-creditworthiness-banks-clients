@@ -1,8 +1,9 @@
 import React, { Component } from "react";
-import { ATTRIBUTE_TYPE, ATTRIBUTE_TYPE_NAME } from "../Definitions";
-import BooleanRadioInput from "./BooleanRadioInput";
-import StringRadioInput from "./StringRadioInput";
+import { ATTRIBUTE_TYPE, ATTRIBUTE_TYPE_NAME, SECTION } from "../../Definitions";
+import BooleanRadioInput from "./DeterminingClass/BooleanRadioInput";
+import StringRadioInput from "./DeterminingClass/StringRadioInput";
 import isEqual from 'lodash/isEqual';
+import TestObjects from "../../TestObjects";
 
 const LOG_TYPES = {
 	SUCCESS: 'success',
@@ -14,26 +15,29 @@ const LOG_TYPES = {
 class DeterminingClass extends Component {
 	constructor(props) {
 		super(props);
+		//App already loaded
+		const attrValues = {};
+		this.props.attributes.forEach(a => {
+			attrValues[a.name] = {
+				attr: a,
+				value: null,
+			}
+		});
 		this.state = {
-			attrValues: {},
+			attrValues: attrValues,
 			result: null,
-			logs: null,
+			logs: [],
+			error: false,
 		};
 	}
 
-	componentDidMount() {
-		this.setState({
-			attrValues: this.props.attributes.map(a => (
-				{
-					attr: a,
-					value: null,
-				}
-			)),
-		})
-	}
-
+	//App in load
 	componentDidUpdate(prevProps, prevState, snapshot) {
-		if (!isEqual(prevProps.attributes, this.props.attributes)) {
+		if(this.props.attributes.some( atr => {
+			const f = prevProps.attributes.find( a => a.id === atr.id);
+			return f === null || !isEqual(f, atr);
+		}))
+		{
 			const attrValues = {};
 			this.props.attributes.forEach(a => {
 				const prevAttr = prevState.attrValues[a.name] || {};
@@ -48,24 +52,25 @@ class DeterminingClass extends Component {
 
 	displayInput = (atrValue) => {
 		switch (atrValue.attr.type) {
-			case ATTRIBUTE_TYPE.INT: {
-				return <input
-					type="number"
-					value={atrValue.minValue}
-					min={atrValue.attr.minValue}
-					max={atrValue.attr.maxValue}
-					onChange={(e) => this.handleChangeNumber(e, atrValue, parseInt)}
-				/>;
-			}
+			case ATTRIBUTE_TYPE.INT:
 			case ATTRIBUTE_TYPE.DOUBLE: {
-				return <input
-					type="number"
-					step="any"
-					value={atrValue.minValue}
-					min={atrValue.attr.minValue}
-					max={atrValue.attr.maxValue}
-					onChange={(e) => this.handleChangeNumber(e, atrValue, parseFloat)}
-				/>;
+				const step = atrValue.attr.type === ATTRIBUTE_TYPE.DOUBLE ? "any" : 1;
+				const parseFunc = atrValue.attr.type === ATTRIBUTE_TYPE.DOUBLE ? parseFloat : parseInt;
+
+				return <div>
+						{atrValue.attr.value.map((value, index) => (
+							<span key={index} className="mx-2 mb-1 badge text-bg-light">от {value.minValue} до {value.maxValue}</span>
+						))}
+					<input
+						type="number"
+						step={step}
+						value={atrValue.value}
+						min={atrValue.attr.minValue}
+						max={atrValue.attr.maxValue}
+						onChange={(e) => this.handleChangeNumber(e, atrValue, parseFunc)}
+						className="form-control"
+					/>
+				</div>;
 			}
 			case ATTRIBUTE_TYPE.STRING: {
 				return <StringRadioInput selectedValue={atrValue.value} allValues={atrValue.attr.value} onChange={(value) => {
@@ -86,27 +91,44 @@ class DeterminingClass extends Component {
 	handleChangeNumber = (event, atrValue, parseFunc) => {
 		const parsedValue = parseFunc(event.target.value);
 		if (!isNaN(parsedValue)) {
-			if(parsedValue <= atrValue.attr.maxValue && parsedValue >= atrValue.attr.minValue)
 				this.updateState(atrValue, parsedValue);
-			//else not change
 		} else if("" === event.target.value) {
 			this.updateState(atrValue, null);
 		}
 	};
 
 	updateState = (atrValue, newValue) => {
-		this.setState(prevState => ({
-			attrValues: {
-				...prevState.attrValues,
-				[atrValue.attr.name]: {
-					...prevState.attrValues[atrValue.attr.name],
-					value: newValue,
-				}
+		const newAtrValues = {
+			...this.state.attrValues,
+			[atrValue.attr.name]: {
+				attr: atrValue.attr,
+				value: newValue,
 			}
-		}));
+		};
+		this.setState(prevState => ({
+			attrValues: newAtrValues}
+		));
 	}
 
 	handleClick = () => {
+		console.log(this.state.attrValues);
+		const error = Object.values(this.state.attrValues).some(atrVal => {
+			if(atrVal.value === null)
+				return false;
+
+			if(atrVal.attr.type !== ATTRIBUTE_TYPE.INT || atrVal.attr.type !== ATTRIBUTE_TYPE.DOUBLE)
+				return false;
+
+			console.log(atrVal.attr.value,atrVal.value );
+			return !atrVal.attr.value.some(val => atrVal.value <= val.maxValue && atrVal.value >= val.minValue);
+		});
+
+		if(error) {
+			this.setState({error: true});
+			return;
+		}
+		this.setState({error: false});
+
 		let logs = [];
 		const score = {};
 		this.props.classes.forEach(cls => {
@@ -133,7 +155,7 @@ class DeterminingClass extends Component {
 				switch (found.attr.type) {
 					case ATTRIBUTE_TYPE.INT:
 					case ATTRIBUTE_TYPE.DOUBLE: {
-						if (e.value <= found.maxValue && e.value >= found.minValue) {
+						if (found.value.some(val => e.value <= val.maxValue && e.value >= val.minValue)) {
 							score[name].value = score[name].value + 1;
 							logs.push({ type: LOG_TYPES.SUCCESS, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" соответствует` });
 						} else {
@@ -182,13 +204,28 @@ class DeterminingClass extends Component {
 		}
 	}
 
+	TestCase = (n) => {
+		if (n >= 1 && n <= 5) {
+			const index = n - 1;
+			this.setState({ attrValues: TestObjects[index] }, this.handleClick);
+		}
+	}
+
 	render() {
 		return (
 			<>
 				<header className="col-12">
 					<h3>Определение класса кредитоспособности</h3>
-					<button className="btn btn-sm mb-2 btn-success" type="button" onClick={this.handleClick}>Определить</button>
+					<div className="btn-group">
+						<button className="btn btn-sm mb-2 btn-outline-success" type="button" onClick={this.handleClick}>Определить</button>
+						<button className="btn btn-sm mb-2 btn-outline-primary" type="button" onClick={() => this.props.setSection(SECTION.CLASSES_LIST)}>Просмотр базы знаний</button>
+					</div>
 				</header>
+				{this.state.error && (
+					<div className="alert alert-danger" role="alert">
+						Ошибка! Проверьте правильность введеных данных!
+					</div>
+				)}
 				<div className="col-12">
 					{this.state.result && <h4>{this.state.result}</h4>}
 				</div>
@@ -203,6 +240,15 @@ class DeterminingClass extends Component {
 							))}
 						</details>
 					}
+				</div>
+				<div className="col-12">
+					<div className="btn-group">
+						{[...Array(5).keys()].map(i => (
+							<div key={i} className="btn btn-outline-secondary" onClick={() => this.TestCase(i + 1)}>
+								Test case #{i + 1}
+							</div>
+						))}
+					</div>
 				</div>
 				<div className="col-12">
 					<table className="table">

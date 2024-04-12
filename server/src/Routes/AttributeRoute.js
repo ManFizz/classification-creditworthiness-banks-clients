@@ -9,9 +9,7 @@ router.get('/', async (req, res) => {
 			id: attr._id,
 			name: attr.name,
 			type: attr.type,
-			minValue: attr.minValue,
-			maxValue: attr.maxValue,
-			value: attr.value
+			value: attr.value,
 		}));
 
 		res.json(transformedAttributes);
@@ -22,9 +20,9 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-	const { name, type, minValue, maxValue, value } = req.body;
+	const { name, type, value } = req.body;
 	try {
-		const newAttribute = new Attribute({ name, type, minValue, maxValue, value });
+		const newAttribute = new Attribute({ name, type, value });
 		await newAttribute.save();
 		res.status(201).json(newAttribute);
 	} catch (error) {
@@ -42,11 +40,9 @@ router.put('/:id', async (req, res) => {
 			return res.status(404).json({ message: 'Class not found' });
 		}
 
-		const { name, type, minValue, maxValue, value } = req.body;
+		const { name, type, value } = req.body;
 		if (name !== undefined) attributeToUpdate.name = name;
 		if (type !== undefined) attributeToUpdate.type = type;
-		if (minValue !== undefined) attributeToUpdate.minValue = minValue;
-		if (maxValue !== undefined) attributeToUpdate.maxValue = maxValue;
 		if (value !== undefined) attributeToUpdate.value = value;
 
 		await attributeToUpdate.save();
@@ -55,8 +51,6 @@ router.put('/:id', async (req, res) => {
 			id: attributeToUpdate._id,
 			name: attributeToUpdate.name,
 			type: attributeToUpdate.type,
-			minValue: attributeToUpdate.minValue,
-			maxValue: attributeToUpdate.maxValue,
 			value: attributeToUpdate.value });
 	} catch (error) {
 		console.error('Error updating class:', error);

@@ -18,7 +18,7 @@ class StringRadioInput extends Component {
 						type="radio"
 						className="form-check-input"
 						id="unknown"
-						value={null}
+						value={""}
 						checked={selectedValue === null}
 						onChange={this.handleChange}
 					/>

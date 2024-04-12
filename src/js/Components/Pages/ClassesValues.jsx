@@ -1,75 +1,31 @@
 import React, { Component } from "react";
 import axios from 'axios';
-import { ATTRIBUTE_TYPE } from "../Definitions";
-import StringSelectInput from "./StringSelectInput";
+import ValueFieldStatic from "./ClassesValues/ValueFieldStatic";
+import { ATTRIBUTE_TYPE } from "../../Definitions";
 
-function isTrue(attribute) {
-	return attribute.value.includes(true) || attribute.value.includes('true');
-}
-
-function isFalse(attribute) {
-	return attribute.value.includes(false) || attribute.value.includes('false');
-}
-
-function displayValue(attribute) {
-	const warn = <span className="badge text-bg-warning">Не задано</span>;
-	switch (attribute.attr.type) {
-		case ATTRIBUTE_TYPE.DOUBLE :
-		case ATTRIBUTE_TYPE.INT : {
-			if (attribute.minValue === undefined || attribute.maxValue === undefined ||
-				attribute.minValue === null || attribute.maxValue === null)
-				return warn;
-			return <span>от {attribute.minValue} до {attribute.maxValue}</span>;
-		}
-		case ATTRIBUTE_TYPE.STRING : {
-			if(attribute.value === undefined)
-				attribute.value = [];
-
-			if (attribute.value.length === 0)
-				return warn;
-			return `${attribute.value.join(", ")}`;
-		}
-		case ATTRIBUTE_TYPE.BOOLEAN: {
-			if(attribute.value === undefined)
-				attribute.value = [];
-
-			if(isTrue(attribute)) {
-				if(isFalse(attribute))
-					return <span>Да/Нет</span>;
-				return <span>Да</span>;
-			}
-
-			if(isFalse(attribute))
-				return <span>Нет</span>;
-
-			return warn;
-
-		}
-		default:
-			return null;
-	}
-}
-
-class ClassesDescription extends Component {
+class ClassesValues extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
 			editingId: null,
 			currentClass: props.classes[0] || null,
-			minValue: null,
-			maxValue: null,
 			value: null,
+			isError: false,
 		};
-
 		this.selectRef = React.createRef();
 	}
 
 	handleEdit = (a) => {
+		let value = a.value || [];
+		value = value.map(val => ({
+			...val,
+			id: '_' + Math.random().toString(16).slice(2),
+		}))
+
 		this.setState({
 			editingId: a.id,
-			minValue: a.minValue,
-			maxValue:a.maxValue,
-			value: a.value,
+			value: value,
+			isError: false,
 		});
 	};
 
@@ -78,19 +34,35 @@ class ClassesDescription extends Component {
 	};
 
 	handleSave = () => {
-		const { currentClass, editingId, minValue, maxValue, value } = this.state;
+		const { currentClass, editingId, value } = this.state;
 		const attr = this.props.attributes.find(a => a.id === editingId);
+		if(attr.type === ATTRIBUTE_TYPE.DOUBLE || attr.type === ATTRIBUTE_TYPE.INT) {
+			const isError = value.some(newValue => {
+				if (newValue.minValue > newValue.maxValue) {
+					return true;
+				}
+
+				return !attr.value.some(checkValue =>
+					newValue.minValue >= checkValue.minValue && newValue.maxValue <= checkValue.maxValue
+				);
+			});
+
+			if(isError) {
+				this.setState({ isError: true });
+				return;
+			}
+		}
+
 		const newAttributes = [...currentClass.attributes.filter(a => a.id !== editingId), {
 			id: editingId,
 			attr: attr,
-			minValue: minValue,
-			maxValue:maxValue,
 			value: value,
 		}];
 		this.setNewAttributes(newAttributes).then(r =>
 			this.setState({ editingId: null })
 		);
 	}
+
 
 	handleDelete = async (id) => {
 		const { currentClass } = this.state;
@@ -112,7 +84,7 @@ class ClassesDescription extends Component {
 			id: selectedAttributeId,
 			attr: this.props.attributes.find(a => a.id === selectedAttributeId),
 		}];
-		this.setNewAttributes(newAttributes);
+		this.setNewAttributes(newAttributes).then();
 	};
 
 	setNewAttributes = async (newAttributes) => {
@@ -136,79 +108,8 @@ class ClassesDescription extends Component {
 		this.setState({currentClass: c})
 	}
 
-	handleMinChangeInteger = (event) => {
-		const value = parseInt(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ minValue: value });
-		}
-	};
-
-	handleMaxChangeInteger = (event) => {
-		const value = parseInt(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ maxValue: value });
-		}
-	};
-
-	handleMinChangeDouble = (event) => {
-		const value = parseFloat(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ minValue: value });
-		}
-	};
-
-	handleMaxChangeDouble = (event) => {
-		const value = parseFloat(event.target.value);
-		if (!isNaN(value)) {
-			this.setState({ maxValue: value });
-		}
-	};
-
-	displayInput = (a) => {
-		const { minValue, maxValue, value} = this.state;
-		switch (a.attr.type) {
-			case ATTRIBUTE_TYPE.INT: {
-				return <>
-					<label>от</label>
-					<input type="number" value={minValue} min={a.attr.minValue} onChange={this.handleMinChangeInteger}/>
-					<label>до</label>
-					<input type="number" value={maxValue} max={a.attr.maxValue} onChange={this.handleMaxChangeInteger}/>
-				</>;
-			}
-			case ATTRIBUTE_TYPE.DOUBLE: {
-				return <>
-					<label>от</label>
-					<input type="number" step="any" value={minValue} min={a.attr.minValue} onChange={this.handleMinChangeDouble}/>
-					<label>до</label>
-					<input type="number" step="any" value={maxValue} max={a.attr.maxValue} onChange={this.handleMaxChangeDouble}/>
-				</>;
-			}
-			case ATTRIBUTE_TYPE.STRING: {
-				return <StringSelectInput selectedValues={value} allValues={a.attr.value} onChange={(v) => { this.setState({value: v}); }} />;
-			}
-			case ATTRIBUTE_TYPE.BOOLEAN: {
-				let selectedValues = [];
-				if(value.includes(true))
-					selectedValues.push('Да');
-				if(value.includes(false))
-					selectedValues.push('Нет');
-				return <StringSelectInput selectedValues={selectedValues} allValues={['Да','Нет']} onChange={(v) => {
-					let newVal = [];
-					if(v.includes('Да'))
-						newVal.push(true);
-					if(v.includes('Нет'))
-						newVal.push(false);
-					this.setState({value: newVal});
-				}} />;
-			}
-			default : {
-				return null;
-			}
-		}
-	}
-
 	render() {
-		const {editingId, currentClass} = this.state;
+		const {editingId, currentClass, value, isError} = this.state;
 		return (
 			<>
 				<header className="col-12">Список классов кредитоспособности</header>
@@ -246,11 +147,17 @@ class ClassesDescription extends Component {
 						{currentClass && currentClass.attributes
 							.sort((a, b) => a.attr.name.localeCompare(b.attr.name))
 							.map((a, index) => (<>
-								<tr key={index}>
+								<tr key={a.attr.id}>
 									<th scope="row">{index + 1}</th>
 									<td>{a.attr.name}</td>
 									<td style={{maxWidth: '500px'}}>
-										{a.id === editingId ? this.displayInput(a) : displayValue(a)}
+										<ValueFieldStatic isEdit={a.id === editingId} attribute={a} value={value}
+																			setProps={data => this.setState(data)}/>
+										{a.id === editingId && isError && (
+											<div className="alert alert-danger" role="alert">
+												Ошибка! Проверьте правильность введенных данных!
+											</div>
+										)}
 									</td>
 									<td className="text-center">
 										{editingId === a.id ? (
@@ -283,7 +190,7 @@ class ClassesDescription extends Component {
 						{this.props.attributes
 							.filter(attribute => !currentClass.attributes.some(attr => attr.id === attribute.id))
 							.map((attribute, index) => (
-							<option key={index} value={attribute.id}>
+							<option key={"option"+attribute.id} value={attribute.id}>
 								{attribute.name}
 							</option>
 						))}
@@ -295,4 +202,4 @@ class ClassesDescription extends Component {
 	}
 }
 
-export default ClassesDescription;
+export default ClassesValues;

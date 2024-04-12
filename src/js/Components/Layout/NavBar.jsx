@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { SECTION } from "../Definitions";
+import { SECTION } from "../../Definitions";
 
 const renderRadioButtons = (defaultIndex, buttons) => {
 	return buttons.map((button, index) => (
@@ -14,13 +14,16 @@ const renderRadioButtons = (defaultIndex, buttons) => {
 
 class NavBar extends Component {
 	render() {
-		const { setSection } = this.props;
+		const { setSection, display } = this.props;
+		if(!display)
+			return null;
+		
 		return (
 			<header className="navbar navbar-expand-lg sticky-top navbar-light text-dark bg-light">
 				<div className="container-xxl">
 					<div className="navbar-nav flex-row flex-wrap bd-navbar-nav">
 						<div className="btn-group radio-group">
-							{renderRadioButtons( 0, [
+							{renderRadioButtons( 1, [
 								{label: 'Определение класса кредитоспособности', onClick: () => setSection(SECTION.DETERMINING_THE_CREDITWORTHINESS_CLASS)},
 								{label: 'Классы кредитоспособности', onClick: () => setSection(SECTION.CLASSES_LIST)},
 								{label: 'Признаки', onClick: () => setSection(SECTION.ATTRIBUTES)},
