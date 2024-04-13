@@ -17,10 +17,12 @@ class ClassesValues extends Component {
 
 	handleEdit = (a) => {
 		let value = a.value || [];
-		value = value.map(val => ({
-			...val,
-			id: '_' + Math.random().toString(16).slice(2),
-		}))
+		if(a.attr.type === ATTRIBUTE_TYPE.INT || a.attr.type === ATTRIBUTE_TYPE.DOUBLE) {
+			value = value.map(val => ({
+				...val,
+				id: '_' + Math.random().toString(16).slice(2),
+			}))
+		}
 
 		this.setState({
 			editingId: a.id,
