@@ -22,6 +22,8 @@ app.use(bodyParser.json());
 
 app.use('/api/classes', classRoutes);
 app.use('/api/attributes', attributeRoutes);
+app.use('/classes', classRoutes);
+app.use('/attributes', attributeRoutes);
 
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
