@@ -5,12 +5,9 @@ import StringRadioInput from "./DeterminingClass/StringRadioInput";
 import isEqual from 'lodash/isEqual';
 import TestObjects from "../../TestObjects";
 
-const LOG_TYPES = {
-	SUCCESS: 'success',
-	WARNING: 'warning',
-	INFO: 'info',
-	NO_SUCCESS: 'no success',
-};
+const valueInRanges = (value, ranges) => {
+	return ranges.some(range => value <= range.maxValue && value >= range.minValue);
+}
 
 class DeterminingClass extends Component {
 	constructor(props) {
@@ -27,7 +24,7 @@ class DeterminingClass extends Component {
 			attrValues: attrValues,
 			result: null,
 			logs: [],
-			error: false,
+			error: null,
 		};
 	}
 
@@ -110,66 +107,92 @@ class DeterminingClass extends Component {
 		));
 	}
 
-	handleClick = () => {
-		console.log(this.state.attrValues);
-		const error = Object.values(this.state.attrValues).some(atrVal => {
+	checkMinMax = () => {
+		return Object.values(this.state.attrValues).some(atrVal => {
 			if(atrVal.value === null)
 				return false;
 
 			if(atrVal.attr.type !== ATTRIBUTE_TYPE.INT || atrVal.attr.type !== ATTRIBUTE_TYPE.DOUBLE)
 				return false;
 
-			console.log(atrVal.attr.value,atrVal.value );
 			return !atrVal.attr.value.some(val => atrVal.value <= val.maxValue && atrVal.value >= val.minValue);
 		});
+	}
 
-		if(error) {
-			this.setState({error: true});
-			return;
-		}
-		this.setState({error: false});
-
-		let logs = [];
-		const score = {};
-		this.props.classes.forEach(cls => {
-			score[cls.name] = {
-				value: 0,
-			};
+	checkFillInputs = () => {
+		return Object.values(this.state.attrValues).some(e => {
+			return e.value === null;
 		});
+	}
 
+	checkCompleteness = () => {
+		return Object.values(this.state.attrValues).some(e => {
+			return this.props.classes.some(cls => {
+				return !cls.attributes.find(a => a.id === e.attr.id);
+			})
+		})
+	};
+
+	hasErrors = () => {
+		this.setState({
+			result: null,
+			logs:[]
+		});
+		if(this.checkFillInputs()) {
+			this.setState({error: "Не все поля заполненны!"});
+			return true;
+		}
+
+		if(this.checkMinMax()) {
+			this.setState({error: "Проверьте правильность введеных данных!"});
+			return true;
+		}
+
+		if(this.checkCompleteness()) {
+			this.setState({error: "Знания не полны!"});
+			return true;
+		}
+
+		this.setState({error: null});
+		return false;
+	};
+
+	handleClick = () => {
+		if(this.hasErrors())
+			return;
+
+		const errorTemplate = (val, name) => {
+			if(val === false)
+				val = 'Нет';
+			else if(val === true)
+				val = 'Да';
+			return `значение «${val}» признака «${name}» не соответствует описанию класса кредитоспособности`;
+		};
+
+		const logs = {};
 		Object.values(this.state.attrValues).forEach(e => {
-			if (e.value === null) {
-				logs.push({ type: LOG_TYPES.INFO, message: `Атрибут "${e.attr.name}" не введен` });
-				return;
-			}
-
 			this.props.classes.forEach(cls => {
-				const name = cls.name;
-
 				const found = cls.attributes.find(a => a.id === e.attr.id);
-				if (!found) {
-					logs.push({ type: LOG_TYPES.WARNING, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" не задан` });
-					return;
+				const clsName = cls.name;
+
+				if (!logs[clsName]) {
+					logs[clsName] = { errors: [] };
 				}
 
 				switch (found.attr.type) {
 					case ATTRIBUTE_TYPE.INT:
 					case ATTRIBUTE_TYPE.DOUBLE: {
-						if (found.value.some(val => e.value <= val.maxValue && e.value >= val.minValue)) {
-							score[name].value = score[name].value + 1;
-							logs.push({ type: LOG_TYPES.SUCCESS, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" соответствует` });
-						} else {
-							logs.push({ type: LOG_TYPES.NO_SUCCESS, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" не соответствует` });
+						if(!valueInRanges(e.value, found.value)) {
+							const error = errorTemplate(e.value, e.attr.name);
+							logs[clsName].errors.push(error);
 						}
 						break;
 					}
 					case ATTRIBUTE_TYPE.STRING:
 					case ATTRIBUTE_TYPE.BOOLEAN: {
-						if (found.value.includes(e.value)) {
-							score[name].value = score[name].value + 1;
-							logs.push({ type: LOG_TYPES.SUCCESS, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" соответствует` });
-						} else {
-							logs.push({ type: LOG_TYPES.NO_SUCCESS, message: `Атрибут "${e.attr.name}" у класса кредитоспособности "${name}" не соответствует` });
+						if (!found.value.includes(e.value)) {
+							const error = errorTemplate(e.value, e.attr.name);
+							logs[clsName].errors.push(error);
 						}
 						break;
 					}
@@ -177,37 +200,39 @@ class DeterminingClass extends Component {
 			});
 		});
 
-		if(score.length === 0)
+		if(logs.length === 0) //Todo ?
 			return;
 
-		const scoreArray = Object.entries(score);
-		scoreArray.sort((a, b) => b[1].value - a[1].value);
-		const [maxName] = scoreArray[0];
+		let objectArray = Object.entries(logs)
+			.filter(log => log[1].errors.length === 0)
+			.map(log => log[0]);
+		const result = objectArray.length === 0 ?
+			'Класс кредитоспособности не определён.\n' +
+			'Знания об этом классе кредитоспособных клиентов не занесены в систему. Обратитесь к эксперту для ' +
+			'разрешения проблемы. Все классы кредитоспособностей опровергнуты по  следующим причинам:'
+		:
+			'Подходящие классы кредитоспособности: ' + objectArray.join(', ') +
+			'.\nДругие классы кредитоспособности опровергнуты по следующим причинам:';
 		this.setState({
-			result: maxName,
-			logs: logs,
+			result: result,
+			logs: Object.entries(logs),
 		});
-	}
-
-	getLogColor(type) {
-		switch (type) {
-			case LOG_TYPES.NO_SUCCESS:
-				return 'warning';
-			case LOG_TYPES.SUCCESS:
-				return 'success';
-			case LOG_TYPES.WARNING:
-				return 'danger';
-			case LOG_TYPES.INFO:
-				return 'info';
-			default:
-				return 'secondary';
-		}
 	}
 
 	TestCase = (n) => {
 		if (n >= 1 && n <= 5) {
-			const index = n - 1;
-			this.setState({ attrValues: TestObjects[index] }, this.handleClick);
+			const { attrValues } = this.state;
+			const testObject = TestObjects[n - 1];
+
+			Object.keys(testObject).forEach(key => {
+				if (attrValues[key]) {
+					attrValues[key].value = testObject[key].value;
+				} else {
+					console.error(`Атрибут "${key}" не найден в attrValues`);
+				}
+			});
+
+			this.setState({ attrValues: attrValues }, this.handleClick);
 		}
 	}
 
@@ -216,39 +241,46 @@ class DeterminingClass extends Component {
 			<>
 				<header className="col-12">
 					<h3>Определение класса кредитоспособности</h3>
-					<div className="btn-group">
-						<button className="btn btn-sm mb-2 btn-outline-success" type="button" onClick={this.handleClick}>Определить</button>
-						<button className="btn btn-sm mb-2 btn-outline-primary" type="button" onClick={() => this.props.setSection(SECTION.CLASSES_LIST)}>Просмотр базы знаний</button>
-					</div>
 				</header>
-				{this.state.error && (
-					<div className="alert alert-danger" role="alert">
-						Ошибка! Проверьте правильность введеных данных!
-					</div>
-				)}
-				<div className="col-12">
-					{this.state.result && <h4>{this.state.result}</h4>}
-				</div>
-				<div className="col-12">
-					{this.state.logs &&
-						<details>
-							<summary>Подробнее</summary>
-							{this.state.logs.map((log, index) => (
-								<div key={index} className={`alert alert-${this.getLogColor(log.type)}`} role="alert">
-									{log.message}
+				<div className="col-12 mb-2">
+					<div className="row" >
+						<div className="btn-group col-4">
+							<button className="btn btn-outline-success" type="button"
+											onClick={this.handleClick}>Определить
+							</button>
+							<button className="btn btn-outline-primary" type="button"
+											onClick={() => this.props.setSection(SECTION.CLASSES_LIST)}>Просмотр базы знаний
+							</button>
+						</div>
+						<div className="btn-group col-8">
+							{[...Array(5).keys()].map(i => (
+								<div key={i} className="btn btn-outline-secondary" onClick={() => this.TestCase(i + 1)}>
+									Test case #{i + 1}
 								</div>
 							))}
-						</details>
-					}
+						</div>
+					</div>
+				</div>
+				{this.state.error !== null && (
+					<div className="alert alert-danger" role="alert">{this.state.error}</div>
+				)}
+				<div className="col-12">
+					{this.state.result !== null && <h4>{this.state.result}</h4>}
 				</div>
 				<div className="col-12">
-					<div className="btn-group">
-						{[...Array(5).keys()].map(i => (
-							<div key={i} className="btn btn-outline-secondary" onClick={() => this.TestCase(i + 1)}>
-								Test case #{i + 1}
-							</div>
-						))}
-					</div>
+					{this.state.logs.length > 0 &&
+						<details>
+							<summary>Подробнее</summary>
+							{this.state.logs.map((log, index1) =>
+									log[1].errors.length > 0 && (
+										<div key={index1} className={`alert alert-warning`} role="alert">
+											<span>Класс кредитоспособности «{log[0]}» опровергнут, так как:</span><br/>
+											{log[1].errors.join('; \n')}
+										</div>
+									)
+							)}
+						</details>
+					}
 				</div>
 				<div className="col-12">
 					<table className="table">
