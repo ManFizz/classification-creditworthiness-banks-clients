@@ -44,9 +44,9 @@ class CheckCompleteness extends Component {
 	render() {
 		return (
 			<>
-				<header className="col-12">Список неполноты</header>
+				<header className="col-12">{this.arr.length > 0 ? (<h1>Список неполноты</h1>) : <h1>Знания полны</h1>}</header>
 				<div className="col-12">
-					{this.arr.length > 0 ? (
+					{this.arr.length > 0 && (
 					<table className="table table-hover">
 						<thead className="table-light">
 						<tr>
@@ -64,7 +64,8 @@ class CheckCompleteness extends Component {
 							</tr>
 						))}
 						</tbody>
-					</table>) : <h1>Знания полны</h1>}
+					</table>
+					)}
 				</div>
 			</>
 		)
