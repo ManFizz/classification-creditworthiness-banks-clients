@@ -15,17 +15,6 @@ class AttributesValues extends Component {
 		};
 	}
 
-	handleDelete = async (id) => {
-		try {
-			await axios.delete(`/api/attributes/${id}`);
-			this.props.setProps(prevProps => ({
-				attributes: prevProps.attributes.filter(c => c.id !== id)
-			}));
-		} catch (error) {
-			console.error('Error deleting attribute:', error);
-		}
-	};
-
 	handleEdit = (id) => {
 		const attribute = this.props.attributes.find(c => c.id === id);
 		this.setState({
@@ -36,12 +25,11 @@ class AttributesValues extends Component {
 		});
 	};
 
-	handleNameChange = (event) => {
-		this.setState({ newName: event.target.value });
-	};
-
 	handleTypeChange = (event) => {
-		this.setState({ newType: event.target.selectedIndex-1 });
+		this.setState({
+			newType: event.target.selectedIndex-1,
+			value: []
+		});
 	};
 
 	handleSave = async () => {
@@ -98,10 +86,7 @@ class AttributesValues extends Component {
 							<tr key={c.id} className={c.id === editingId ? "table-light": ""}>
 								<th scope="row">{index+1}</th>
 								<td>
-									{ editingId === c.id ?
-									<input type="text" value={newName} onChange={this.handleNameChange} className="form-control"/>
-										: c.name
-									}
+									{ c.name }
 								</td>
 								<td>{editingId === c.id ?
 									<AttributeTypeDropdown type={newType} onChange={this.handleTypeChange}/>
@@ -125,9 +110,6 @@ class AttributesValues extends Component {
 										<>
 											<button className="btn btn-primary btn-sm mx-1" onClick={() => this.handleEdit(c.id)}>
 												<i className="bi bi-pencil-fill"/>
-											</button>
-											<button className="btn btn-danger btn-sm" onClick={() => this.handleDelete(c.id)}>
-												<i className="bi bi-trash-fill"/>
 											</button>
 										</>
 									)}
