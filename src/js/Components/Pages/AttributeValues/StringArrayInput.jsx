@@ -4,7 +4,8 @@ class StringArrayInput extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			newString: ""
+			newString: "",
+			addError: null,
 		};
 	}
 
@@ -14,10 +15,19 @@ class StringArrayInput extends Component {
 
 	handleAddString = () => {
 		const { newString } = this.state;
-		if (newString.trim() !== "") {
-			this.props.onChange([...this.props.value, newString.trim()]);
-			this.setState({ newString: "" });
+
+		if(this.props.value.some(s => s.localeCompare(newString.trim()) === 0)) {
+			this.setState({addError: "Такое значение уже существует"});
+			return;
 		}
+
+		if(newString.trim() === "") {
+			this.setState({addError: "Значение не может быть пустым"});
+			return;
+		}
+
+		this.props.onChange([...this.props.value, newString.trim()]);
+		this.setState({ newString: "" });
 	};
 
 	handleRemoveString = (index) => {
@@ -28,8 +38,7 @@ class StringArrayInput extends Component {
 
 	render() {
 		const { value } = this.props;
-		const { newString } = this.state;
-
+		const { newString, addError } = this.state;
 		return (
 			<div>
 				<ul className="list-group">
@@ -48,6 +57,7 @@ class StringArrayInput extends Component {
 						<i className="bi bi-plus-lg"/>
 					</button>
 				</div>
+				{addError && <div className="alert alert-danger mt-2">{addError}</div> }
 			</div>
 		);
 	}

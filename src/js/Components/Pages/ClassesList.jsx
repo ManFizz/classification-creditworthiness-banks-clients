@@ -8,17 +8,37 @@ class ClassesList extends Component {
 			editingId: null,
 			newName: "",
 			newClassName: "",
+			addError: null,
 		};
 	}
 
 	handleNewClassNameChange = (event) => {
 		this.setState({
 			newClassName: event.target.value,
-		});
+		}, () => this.checkNewClassField());
 	};
 
-	handleAdd = async () => {
+	checkNewClassField = () => {
 		const { newClassName } = this.state;
+
+		if(this.props.classes.some(c => c.name.localeCompare(newClassName.trim()) === 0)) {
+			this.setState({addError: "Класс с таким наименованием уже существует"});
+			return false;
+		}
+
+		this.setState({addError: null});
+		return true;
+	}
+
+	handleAdd = async () => {
+		if(!this.checkNewClassField())
+			return;
+
+		const { newClassName } = this.state;
+		if(newClassName.trim() === '' ) {
+			this.setState({addError: "Имя класса не может быть пустым"});
+			return;
+		}
 
 		try {
 			const response = await axios.post('/api/classes', {
@@ -82,7 +102,7 @@ class ClassesList extends Component {
 	};
 
 	render() {
-		const { newName, editingId, newClassName } = this.state;
+		const { newName, editingId, newClassName, addError } = this.state;
 		return (
 			<>
 				<header className="col-12">Список классов кредитоспособности</header>
@@ -128,6 +148,7 @@ class ClassesList extends Component {
 						<td>
 							<input type="text" value={newClassName} onChange={this.handleNewClassNameChange}
 										 placeholder="Название"/>
+							{addError && <div className="alert alert-danger mt-2">{addError}</div> }
 						</td>
 						<td className="text-center">
 							<button className="btn btn-success btn-sm" onClick={this.handleAdd}>

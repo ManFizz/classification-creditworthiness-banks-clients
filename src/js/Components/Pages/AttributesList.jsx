@@ -8,23 +8,45 @@ class AttributesList extends Component {
 			editingId: null,
 			newName: "",
 			newAttributeName: "",
+			addError: null,
 		};
 	}
 
 	handleNewAttributeNameChange = (event) => {
 		this.setState({
 			newAttributeName: event.target.value,
-		});
+		}, () => this.checkNewAttributeField());
 	};
 
-	handleAdd = async () => {
+	checkNewAttributeField = () => {
 		const { newAttributeName } = this.state;
+
+		if(this.props.attributes.some(c => c.name.localeCompare(newAttributeName.trim()) === 0)) {
+			this.setState({addError: "Признак с таким наименованием уже существует"});
+			return false;
+		}
+
+		this.setState({addError: null});
+		return true;
+	}
+
+	handleAdd = async () => {
+		if(!this.checkNewAttributeField())
+			return;
+
+		const { newAttributeName } = this.state;
+		if(newAttributeName.trim() === '' ) {
+			this.setState({addError: "Имя признака не может быть пустым"});
+			return;
+		}
+
 		try {
 			const response = await axios.post('/api/attributes', {
 				name: newAttributeName
 			});
 
 			const newAttribute = response.data;
+			newAttribute.id = newAttribute._id;
 			this.props.setProps(prevProps => ({
 				attributes: [...prevProps.attributes, newAttribute],
 			}));
@@ -39,8 +61,13 @@ class AttributesList extends Component {
 	handleDelete = async (id) => {
 		try {
 			await axios.delete(`/api/attributes/${id}`);
+
 			this.props.setProps(prevProps => ({
-				attributes: prevProps.attributes.filter(c => c.id !== id)
+				attributes: prevProps.attributes.filter(c => c.id !== id),
+				classes: prevProps.classes.map(c => ({
+					...c,
+					attributes: c.attributes.filter(a => a.id !== id)
+				})),
 			}));
 		} catch (error) {
 			console.error('Error deleting attribute:', error);
@@ -84,7 +111,7 @@ class AttributesList extends Component {
 	};
 
 	render() {
-		const { newName, editingId, newAttributeName } = this.state;
+		const { newName, editingId, newAttributeName, addError } = this.state;
 		const { attributes } = this.props;
 		return (
 			<>
@@ -131,6 +158,7 @@ class AttributesList extends Component {
 						<td>
 							<input type="text" value={newAttributeName} onChange={this.handleNewAttributeNameChange}
 										 placeholder="Название"/>
+							{addError && <div className="alert alert-danger mt-2">{addError}</div> }
 						</td>
 						<td className="text-center">
 							<button className="btn btn-success btn-sm" onClick={this.handleAdd}>
