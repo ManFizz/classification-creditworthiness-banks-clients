@@ -11,7 +11,7 @@ import AttributesList from "./js/Components/Pages/AttributesList";
 import AttributesValues from "./js/Components/Pages/AttributesValues";
 import ClassesValues from "./js/Components/Pages/ClassesValues";
 import CheckCompleteness from "./js/Components/Pages/CheckCompleteness";
-import DeterminingClass from "./js/Components/Pages/DeterminigClass";
+import DeterminingClass from "./js/Components/Pages/DeterminingClass";
 import axios from "axios";
 import isEqual from "lodash/isEqual";
 

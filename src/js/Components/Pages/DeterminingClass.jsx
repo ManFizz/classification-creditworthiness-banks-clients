@@ -109,110 +109,91 @@ class DeterminingClass extends Component {
 
 	checkMinMax = () => {
 		return Object.values(this.state.attrValues).some(atrVal => {
-			if(atrVal.value === null)
-				return false;
-
-			if(atrVal.attr.type !== ATTRIBUTE_TYPE.INT || atrVal.attr.type !== ATTRIBUTE_TYPE.DOUBLE)
-				return false;
-
+			if (atrVal.value === null) return false;
+			if (atrVal.attr.type !== ATTRIBUTE_TYPE.INT && atrVal.attr.type !== ATTRIBUTE_TYPE.DOUBLE) return false;
 			return !atrVal.attr.value.some(val => atrVal.value <= val.maxValue && atrVal.value >= val.minValue);
 		});
 	}
 
 	checkFillInputs = () => {
-		return Object.values(this.state.attrValues).some(e => {
-			return e.value === null;
-		});
+		return Object.values(this.state.attrValues).some(e => e.value === null);
 	}
 
 	checkCompleteness = () => {
 		return Object.values(this.state.attrValues).some(e => {
-			return this.props.classes.some(cls => {
-				return !cls.attributes.find(a => a.id === e.attr.id);
-			})
-		})
-	};
+			return this.props.classes.some(cls => !cls.attributes.find(a => a.id === e.attr.id));
+		});
+	}
 
 	hasErrors = () => {
 		this.setState({
 			result: null,
-			logs:[]
+			logs: []
 		});
-		if(this.checkFillInputs()) {
-			this.setState({error: "Не все поля заполненны!"});
+
+		if (this.checkFillInputs()) {
+			this.setState({ error: "Не все поля заполненны!" });
+			return true;
+		}
+		if (this.checkMinMax()) {
+			this.setState({ error: "Проверьте правильность введеных данных!" });
+			return true;
+		}
+		if (this.checkCompleteness()) {
+			this.setState({ error: "Знания не полны!" });
 			return true;
 		}
 
-		if(this.checkMinMax()) {
-			this.setState({error: "Проверьте правильность введеных данных!"});
-			return true;
-		}
-
-		if(this.checkCompleteness()) {
-			this.setState({error: "Знания не полны!"});
-			return true;
-		}
-
-		this.setState({error: null});
+		this.setState({ error: null });
 		return false;
-	};
+	}
+
+	validateAttribute = (e, found) => {
+		if (found.attr.type === ATTRIBUTE_TYPE.INT || found.attr.type === ATTRIBUTE_TYPE.DOUBLE) {
+			return !valueInRanges(e.value, found.value);
+		} else {
+			return !found.value.includes(e.value);
+		}
+	}
+
+	errorTemplate = (val, name) => {
+		if (val === false) val = 'Нет';
+		else if (val === true) val = 'Да';
+		return `значение «${val}» признака «${name}» не соответствует описанию класса кредитоспособности`;
+	}
 
 	handleClick = () => {
-		if(this.hasErrors())
-			return;
-
-		const errorTemplate = (val, name) => {
-			if(val === false)
-				val = 'Нет';
-			else if(val === true)
-				val = 'Да';
-			return `значение «${val}» признака «${name}» не соответствует описанию класса кредитоспособности`;
-		};
+		if (this.hasErrors()) return;
 
 		const logs = {};
 		Object.values(this.state.attrValues).forEach(e => {
 			this.props.classes.forEach(cls => {
 				const found = cls.attributes.find(a => a.id === e.attr.id);
+				if (!found) return;
 				const clsName = cls.name;
 
 				if (!logs[clsName]) {
 					logs[clsName] = { errors: [] };
 				}
 
-				switch (found.attr.type) {
-					case ATTRIBUTE_TYPE.INT:
-					case ATTRIBUTE_TYPE.DOUBLE: {
-						if(!valueInRanges(e.value, found.value)) {
-							const error = errorTemplate(e.value, e.attr.name);
-							logs[clsName].errors.push(error);
-						}
-						break;
-					}
-					case ATTRIBUTE_TYPE.STRING:
-					case ATTRIBUTE_TYPE.BOOLEAN: {
-						if (!found.value.includes(e.value)) {
-							const error = errorTemplate(e.value, e.attr.name);
-							logs[clsName].errors.push(error);
-						}
-						break;
-					}
+				if (this.validateAttribute(e, found)) {
+					const error = this.errorTemplate(e.value, e.attr.name);
+					logs[clsName].errors.push(error);
 				}
 			});
 		});
 
-		if(logs.length === 0) //Todo ?
-			return;
-
-		let objectArray = Object.entries(logs)
+		this.updateResult(logs);
+	}
+	updateResult = (logs) => {
+		const objectArray = Object.entries(logs)
 			.filter(log => log[1].errors.length === 0)
 			.map(log => log[0]);
-		const result = objectArray.length === 0 ?
-			'Класс кредитоспособности не определён.\n' +
-			'Знания об этом классе кредитоспособных клиентов не занесены в систему. Обратитесь к эксперту для ' +
-			'разрешения проблемы. Все классы кредитоспособностей опровергнуты по  следующим причинам:'
-		:
-			'Подходящие классы кредитоспособности: ' + objectArray.join(', ') +
-			'.\nДругие классы кредитоспособности опровергнуты по следующим причинам:';
+
+		const result = objectArray.length === 0
+			? 'Класс кредитоспособности не определён.\nЗнания об этом классе кредитоспособных клиентов не занесены в систему. Обратитесь к эксперту для разрешения проблемы. Все классы кредитоспособностей опровергнуты по следующим причинам:'
+			: 'Подходящие классы кредитоспости: ' + objectArray.join(', ') + '.\nДругие классы кредитоспости опровергнуты по следующим причинам:';
+
 		this.setState({
 			result: result,
 			logs: Object.entries(logs),
