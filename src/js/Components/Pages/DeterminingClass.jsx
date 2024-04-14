@@ -131,18 +131,18 @@ class DeterminingClass extends Component {
 			logs: []
 		});
 
-		if (this.checkFillInputs()) {
+		/*if (this.checkFillInputs()) {
 			this.setState({ error: "Не все поля заполненны!" });
 			return true;
-		}
+		}*/
 		if (this.checkMinMax()) {
 			this.setState({ error: "Проверьте правильность введеных данных!" });
 			return true;
 		}
-		if (this.checkCompleteness()) {
+		/*if (this.checkCompleteness()) {
 			this.setState({ error: "Знания не полны!" });
 			return true;
-		}
+		}*/
 
 		this.setState({ error: null });
 		return false;
@@ -159,6 +159,7 @@ class DeterminingClass extends Component {
 	errorTemplate = (val, name) => {
 		if (val === false) val = 'Нет';
 		else if (val === true) val = 'Да';
+		else if (val === null) val = 'Не задано';
 		return `значение «${val}» признака «${name}» не соответствует описанию класса кредитоспособности`;
 	}
 
