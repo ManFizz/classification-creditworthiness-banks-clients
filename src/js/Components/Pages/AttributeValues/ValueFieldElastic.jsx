@@ -89,7 +89,7 @@ class ValueFieldElastic extends Component {
 			}
 			case ATTRIBUTE_TYPE.STRING: {
 				return <StringArrayInput value={value} onChange={(v) => {
-					this.setState({value: v});
+					this.props.setProps({value: v});
 				}} />;
 			}
 			case ATTRIBUTE_TYPE.BOOLEAN: {
