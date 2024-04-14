@@ -56,9 +56,10 @@ class Main extends Component {
         if(c.attributes === undefined)
           c.attributes = [];
         else {
-          c.attributes.forEach(a => {
-            a.attr = attributes.find(attr => attr.id === a.id);
-          });
+          c.attributes = c.attributes.map(a => ({
+            ...a,
+            attr: attributes.find(attr => attr.id === a.id)
+          })).filter(a => a.attr !== undefined);
         }
       });
     }
