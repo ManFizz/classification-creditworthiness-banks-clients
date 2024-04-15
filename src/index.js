@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-icons/font/bootstrap-icons.min.css"
-import "./css/main.css";
+import "./css/main.scss";
 import { SECTION } from "./js/Definitions";
 import NavBar from "./js/Components/Layout/NavBar";
 import ClassesList from "./js/Components/Pages/ClassesList";
