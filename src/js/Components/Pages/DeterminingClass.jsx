@@ -61,7 +61,7 @@ class DeterminingClass extends Component {
 					<input
 						type="number"
 						step={step}
-						value={atrValue.value}
+						value={atrValue.value === null ? "" : atrValue.value}
 						min={atrValue.attr.minValue}
 						max={atrValue.attr.maxValue}
 						onChange={(e) => this.handleChangeNumber(e, atrValue, parseFunc)}
@@ -159,7 +159,6 @@ class DeterminingClass extends Component {
 	errorTemplate = (val, name) => {
 		if (val === false) val = 'Нет';
 		else if (val === true) val = 'Да';
-		else if (val === null) val = 'Не задано';
 		return `значение «${val}» признака «${name}» не соответствует описанию класса кредитоспособности`;
 	}
 
@@ -168,6 +167,9 @@ class DeterminingClass extends Component {
 
 		const logs = {};
 		Object.values(this.state.attrValues).forEach(e => {
+			if(e.value === null)
+				return;
+
 			this.props.classes.forEach(cls => {
 				const found = cls.attributes.find(a => a.id === e.attr.id);
 				if (!found) return;
@@ -183,9 +185,14 @@ class DeterminingClass extends Component {
 				}
 			});
 		});
+		if(Object.entries(logs).length === 0){
+			this.setState({ error: "Введите значения в поля!" });
+			return;
+		}
 
 		this.updateResult(logs);
 	}
+
 	updateResult = (logs) => {
 		const objectArray = Object.entries(logs)
 			.filter(log => log[1].errors.length === 0)
