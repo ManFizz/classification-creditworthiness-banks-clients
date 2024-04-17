@@ -202,9 +202,9 @@ class DeterminingClass extends Component {
 	}
 
 	TestCase = (n) => {
-		if (n >= 1 && n <= 5) {
+		if (n >= 0 && n <= 5) {
 			const { attrValues } = this.state;
-			const testObject = TestObjects[n - 1];
+			const testObject = TestObjects[n];
 
 			Object.keys(testObject).forEach(key => {
 				if (attrValues[key]) {
@@ -235,6 +235,9 @@ class DeterminingClass extends Component {
 							</button>
 						</div>
 						<div className="btn-group col-8">
+							<div className="btn btn-outline-secondary" onClick={() => this.TestCase(0)}>
+								Empty case
+							</div>
 							{[...Array(5).keys()].map(i => (
 								<div key={i} className="btn btn-outline-secondary" onClick={() => this.TestCase(i + 1)}>
 									Test case #{i + 1}
