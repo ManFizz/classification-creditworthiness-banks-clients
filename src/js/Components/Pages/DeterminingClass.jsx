@@ -226,7 +226,7 @@ class DeterminingClass extends Component {
 				</header>
 				<div className="col-12 mb-2">
 					<div className="row" >
-						<div className="btn-group col-4">
+						<div className="btn-group col-5">
 							<button className="btn btn-outline-success" type="button"
 											onClick={this.handleClick}>Определить
 							</button>
@@ -234,7 +234,7 @@ class DeterminingClass extends Component {
 											onClick={() => this.props.setSection(SECTION.CLASSES_LIST)}>Просмотр базы знаний
 							</button>
 						</div>
-						<div className="btn-group col-8">
+						<div className="btn-group col-7">
 							<div className="btn btn-outline-secondary" onClick={() => this.TestCase(0)}>
 								Empty case
 							</div>
@@ -255,7 +255,7 @@ class DeterminingClass extends Component {
 				<div className="col-12">
 					{this.state.logs.length > 0 &&
 						<details>
-							<summary>Подробнее</summary>
+							<summary className="noselect">Подробнее</summary>
 							{this.state.logs.map((log, index1) =>
 									log[1].errors.length > 0 && (
 										<div key={index1} className={`alert alert-warning`} role="alert">
